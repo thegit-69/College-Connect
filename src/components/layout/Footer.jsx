@@ -1,73 +1,91 @@
 import { Link } from 'react-router-dom'
 import { HiOutlineAcademicCap } from 'react-icons/hi2'
-import { IoLogoGithub } from 'react-icons/io5'
 
 export default function Footer() {
   return (
-    <footer className="bg-dark-900 text-dark-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+    <footer className="bg-[#fafafa] text-gray-600 border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                <HiOutlineAcademicCap className="text-white text-lg" />
+            <Link to="/" className="flex items-center gap-2.5 mb-3 group">
+              <div className="w-7 h-7 bg-black text-white rounded-lg flex items-center justify-center shadow-xs">
+                <HiOutlineAcademicCap className="text-base" />
               </div>
-              <span className="text-xl font-bold text-white">
-                CampusEvents
+              <span className="text-base font-extrabold text-gray-950 tracking-tight">
+                Campus Connect
               </span>
             </Link>
-            <p className="text-dark-400 text-sm max-w-md">
-              Simplifying the management of academic and cultural events in
-              colleges. Create, discover, and participate in events with ease.
+            <p className="text-gray-500 text-xs max-w-md leading-relaxed">
+              The unified intelligent digital campus companion uniting academics, smart attendance, AI advisor, grievances, student requests, and verified credentials.
             </p>
           </div>
 
-          {/* Quick Links */}
+          {/* Student Services */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">
-              Quick Links
+            <h4 className="text-gray-900 font-bold text-xs mb-3 uppercase tracking-wider">
+              Student Services
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               <li>
-                <Link to="/events" className="text-sm text-dark-400 hover:text-white transition-colors">
-                  Browse Events
+                <Link to="/dashboard" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  Student Dashboard
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard/create" className="text-sm text-dark-400 hover:text-white transition-colors">
-                  Create Event
+                <Link to="/dashboard/academics" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  Academics & Schedule
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="text-sm text-dark-400 hover:text-white transition-colors">
-                  Dashboard
+                <Link to="/dashboard/smart-attendance" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  Smart Attendance & Bunk Predictor
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard/ai-assistant" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  AI Campus Advisor
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Events Hub */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">
-              Contact us
+            <h4 className="text-gray-900 font-bold text-xs mb-3 uppercase tracking-wider">
+              Events & Portals
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               <li>
-                <span className="text-sm text-dark-400">
-                  <a href="mailto:cdasarath2006@gmail.com">cdasarath2006@gmail.com</a>
-                </span>
+                <Link to="/events" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  Browse Campus Events
+                </Link>
+              </li>
+              <li>
+                <Link to="/my-tickets" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  My Tickets
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard/certificates" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  Certificate Vault
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard/requests" className="text-xs text-gray-500 hover:text-black transition-colors">
+                  Digital Requests & Passes
+                </Link>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-dark-700 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-dark-500">
-            © 2026 Team Kalki 
+        <div className="border-t border-gray-200 mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-[11px] text-gray-400">
+            © 2026 Campus Connect • Intelligent Student Services Platform
           </p>
-          <p className="text-xs text-dark-500">
-            Made with ❤️ for college communities
+          <p className="text-[11px] text-gray-400">
+            Engineered with modern Vercel-style aesthetics
           </p>
         </div>
       </div>

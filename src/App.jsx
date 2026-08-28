@@ -3,17 +3,30 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/layout/Layout'
 import DashboardLayout from './components/layout/DashboardLayout'
+
+// Public pages
 import Home from './pages/Home'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
+import MyTickets from './pages/MyTickets'
+import NotFound from './pages/NotFound'
+
+// Dashboard pages (original)
 import Dashboard from './pages/Dashboard'
 import ManageEvents from './pages/ManageEvents'
 import CreateEvent from './pages/CreateEvent'
-import Attendance from './pages/Attendance'
 import Notifications from './pages/Notifications'
-import MyTickets from './pages/MyTickets'
-import NotFound from './pages/NotFound'
 import AdminReview from './pages/AdminReview'
+
+// Campus Connect feature pages
+import AcademicsPage from './pages/AcademicsPage'
+import AttendancePage from './pages/AttendancePage'
+import AIAssistantPage from './pages/AIAssistantPage'
+import RecommendationsPage from './pages/RecommendationsPage'
+import RequestsPage from './pages/RequestsPage'
+import ComplaintsPage from './pages/ComplaintsPage'
+import CertificatesPage from './pages/CertificatesPage'
+
 import useAuthStore from './store/authStore'
 import useEventStore from './store/eventStore'
 import { getUserRole, onAuthChange } from './services/authService'
@@ -68,14 +81,29 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
 
-        {/* Dashboard routes with Sidebar */}
+        {/* Dashboard routes with Collapsible Sidebar */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
+
+          {/* Events Hub (clg_events integration) */}
           <Route path="events" element={<ManageEvents />} />
           <Route path="create" element={<CreateEvent />} />
-          <Route path="events/:id/attendance" element={<Attendance />} />
+          <Route path="events/:id/attendance" element={<AttendancePage />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="admin/review" element={<AdminReview />} />
+
+          {/* Academics & Campus */}
+          <Route path="academics" element={<AcademicsPage />} />
+          <Route path="attendance" element={<AttendancePage />} />
+
+          {/* AI Intelligence */}
+          <Route path="ai-assistant" element={<AIAssistantPage />} />
+          <Route path="recommendations" element={<RecommendationsPage />} />
+
+          {/* Student Services */}
+          <Route path="requests" element={<RequestsPage />} />
+          <Route path="complaints" element={<ComplaintsPage />} />
+          <Route path="certificates" element={<CertificatesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

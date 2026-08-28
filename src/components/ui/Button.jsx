@@ -2,21 +2,23 @@ import { motion } from 'framer-motion'
 
 const variants = {
   primary:
-    'bg-primary-500 hover:bg-primary-600 text-white',
+    'bg-black hover:bg-gray-800 text-white shadow-xs border border-black',
   secondary:
-    'bg-dark-800 hover:bg-dark-900 text-white',
+    'bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-200',
   outline:
-    'border-2 border-dark-200 hover:border-dark-400 text-dark-800 bg-transparent',
+    'border border-gray-200 hover:border-gray-400 text-gray-800 bg-white hover:bg-gray-50 shadow-xs',
   ghost:
-    'hover:bg-dark-100 text-dark-700 bg-transparent',
+    'hover:bg-gray-100 text-gray-700 bg-transparent',
   danger:
-    'bg-red-500 hover:bg-red-600 text-white',
+    'bg-red-600 hover:bg-red-700 text-white border border-red-600 shadow-xs',
+  blue:
+    'bg-primary-600 hover:bg-primary-700 text-white shadow-xs border border-primary-600',
 }
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-5 py-2.5 text-sm',
-  lg: 'px-6 py-3 text-base',
+  sm: 'px-3 py-1.5 text-xs',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-5 py-2.5 text-base',
 }
 
 export default function Button({
@@ -31,17 +33,17 @@ export default function Button({
   return (
     <motion.button
       type={type}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       className={`
-        inline-flex items-center justify-center gap-2
-        font-semibold rounded-lg transition-colors duration-200
+        inline-flex items-center justify-center gap-1.5
+        font-semibold rounded-lg transition-all duration-150
         disabled:opacity-50 disabled:cursor-not-allowed
-        ${variants[variant]} ${sizes[size]} ${className}
+        ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}
       `}
       {...props}
     >
-      {icon && <span className="text-lg">{icon}</span>}
+      {icon && <span className="text-base">{icon}</span>}
       {children}
     </motion.button>
   )
