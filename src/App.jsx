@@ -3,12 +3,14 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/layout/Layout'
 import DashboardLayout from './components/layout/DashboardLayout'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Public pages
 import Home from './pages/Home'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
 import MyTickets from './pages/MyTickets'
+import LoginPage from './pages/LoginPage'
 import NotFound from './pages/NotFound'
 
 // Dashboard pages (original)
@@ -26,15 +28,33 @@ import RecommendationsPage from './pages/RecommendationsPage'
 import RequestsPage from './pages/RequestsPage'
 import ComplaintsPage from './pages/ComplaintsPage'
 import CertificatesPage from './pages/CertificatesPage'
+import WellnessPage from './pages/WellnessPage'
 
 import useAuthStore from './store/authStore'
 import useEventStore from './store/eventStore'
+import useCampusStore from './store/campusStore'
 import { getUserRole, onAuthChange } from './services/authService'
 import { fetchApprovedEvents } from './services/eventService'
 
 function App() {
   const { setUser, setLoading } = useAuthStore()
   const { setEvents } = useEventStore()
+  const { initFirestore } = useCampusStore()
+
+  // Initialize Firestore collections & realtime listeners
+  useEffect(() => {
+    let unsubscribeFirestore = null
+    const startSync = async () => {
+      unsubscribeFirestore = await initFirestore()
+    }
+    startSync()
+
+    return () => {
+      if (typeof unsubscribeFirestore === 'function') {
+        unsubscribeFirestore()
+      }
+    }
+  }, [initFirestore])
 
   // Listen for Firebase auth state changes
   useEffect(() => {
@@ -72,38 +92,46 @@ function App() {
     <BrowserRouter>
       <Toaster position="top-right" />
       <Routes>
-        {/* Public routes with Navbar + Footer */}
+        {/* 1. Standalone Single-Screen Aesthetic Landing Page */}
+        <Route path="/" element={<Home />} />
+
+        {/* 2. Standalone Login Page */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* 3. Public Event browsing routes with minimal header/footer */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
           <Route path="/events" element={<Events />} />
           <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/my-tickets" element={<MyTickets />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
-        {/* Dashboard routes with Collapsible Sidebar */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
+        {/* 4. Protected Dashboard routes - accessible ONLY after login */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
 
-          {/* Events Hub (clg_events integration) */}
-          <Route path="events" element={<ManageEvents />} />
-          <Route path="create" element={<CreateEvent />} />
-          <Route path="events/:id/attendance" element={<AttendancePage />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="admin/review" element={<AdminReview />} />
+            {/* Events Hub (clg_events integration) */}
+            <Route path="events" element={<ManageEvents />} />
+            <Route path="create" element={<CreateEvent />} />
+            <Route path="events/:id/attendance" element={<AttendancePage />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="admin/review" element={<AdminReview />} />
 
-          {/* Academics & Campus */}
-          <Route path="academics" element={<AcademicsPage />} />
-          <Route path="attendance" element={<AttendancePage />} />
+            {/* Academics & Campus */}
+            <Route path="academics" element={<AcademicsPage />} />
+            <Route path="attendance" element={<AttendancePage />} />
 
-          {/* AI Intelligence */}
-          <Route path="ai-assistant" element={<AIAssistantPage />} />
-          <Route path="recommendations" element={<RecommendationsPage />} />
+            {/* AI Intelligence & Mental Wellness */}
+            <Route path="ai-assistant" element={<AIAssistantPage />} />
+            <Route path="wellness" element={<WellnessPage />} />
+            <Route path="recommendations" element={<RecommendationsPage />} />
 
-          {/* Student Services */}
-          <Route path="requests" element={<RequestsPage />} />
-          <Route path="complaints" element={<ComplaintsPage />} />
-          <Route path="certificates" element={<CertificatesPage />} />
+            {/* Student Services */}
+            <Route path="requests" element={<RequestsPage />} />
+            <Route path="complaints" element={<ComplaintsPage />} />
+            <Route path="certificates" element={<CertificatesPage />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

@@ -14,7 +14,9 @@ import {
   IoAddCircleOutline,
   IoChevronBackOutline,
   IoChevronForwardOutline,
-  IoCloseOutline
+  IoCloseOutline,
+  IoLogInOutline,
+  IoHeartOutline,
 } from 'react-icons/io5'
 import { HiOutlineAcademicCap } from 'react-icons/hi2'
 import useAuthStore from '../../store/authStore'
@@ -30,9 +32,10 @@ const NAVIGATION_GROUPS = [
     ],
   },
   {
-    title: 'AI Intelligence',
+    title: 'AI & Mental Wellness',
     links: [
-      { label: 'AI Campus Advisor', path: '/dashboard/ai-assistant', icon: <IoSparklesOutline />, badge: 'AI' },
+      { label: 'AI Campus Advisor', path: '/dashboard/ai-assistant', icon: <IoSparklesOutline />, badge: 'Groq' },
+      { label: 'Wellness Sanctuary', path: '/dashboard/wellness', icon: <IoHeartOutline />, badge: 'Care' },
       { label: 'AI Recommendations', path: '/dashboard/recommendations', icon: <IoBulbOutline /> },
     ],
   },
@@ -56,8 +59,10 @@ const NAVIGATION_GROUPS = [
 ]
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { isSuperAdmin } = useAuthStore()
-  const { isSidebarCollapsed, toggleSidebarCollapse, studentProfile } = useCampusStore()
+  const { user, isAuthenticated, isSuperAdmin } = useAuthStore()
+  const { isSidebarCollapsed, toggleSidebarCollapse, studentProfile, setProfileModalOpen, setMoodModalOpen, moodLogs } = useCampusStore()
+
+  const latestMood = moodLogs && moodLogs.length > 0 ? moodLogs[0] : null
 
   return (
     <>
@@ -92,7 +97,7 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
             {!isSidebarCollapsed && (
               <div className="flex flex-col">
-                <span className="text-sm font-extrabold text-gray-950 tracking-tight leading-tight">
+                <span className="text-sm font-extrabold text-gray-950 tracking-tight leading-tight font-display">
                   Campus Connect
                 </span>
                 <span className="text-[10px] text-gray-500 font-medium tracking-wide">
@@ -145,7 +150,13 @@ export default function Sidebar({ isOpen, onClose }) {
                         <div className="flex items-center justify-between w-full">
                           <span className="truncate">{link.label}</span>
                           {link.badge && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-200 group-hover:border-primary-300">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${
+                              link.badge === 'Groq'
+                                ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                : link.badge === 'Care'
+                                ? 'bg-pink-50 text-pink-700 border-pink-200'
+                                : 'bg-primary-50 text-primary-700 border-primary-200'
+                            }`}>
                               {link.badge}
                             </span>
                           )}
@@ -185,22 +196,57 @@ export default function Sidebar({ isOpen, onClose }) {
           )}
         </nav>
 
-        {/* Footer Collapse Toggle & Student Mini Card */}
+        {/* Footer Collapse Toggle, Mood Quick Check, and Student Mini Card */}
         <div className="p-3 border-t border-gray-200 bg-white flex flex-col gap-2">
           {!isSidebarCollapsed && (
-            <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200/80 flex items-center justify-between text-xs">
-              <div className="flex flex-col">
-                <span className="font-bold text-gray-900 truncate max-w-[130px]">
-                  {studentProfile.name}
+            <>
+              {/* Daily Mood Strip */}
+              <button
+                type="button"
+                onClick={() => setMoodModalOpen(true)}
+                className="w-full px-3 py-2 bg-pink-50/70 hover:bg-pink-100/80 border border-pink-200/70 rounded-xl flex items-center justify-between text-xs transition-colors text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{latestMood ? latestMood.emoji : '🧘'}</span>
+                  <span className="text-[11px] font-bold text-pink-900">
+                    {latestMood ? `Mood: ${latestMood.label}` : 'Check In Mood'}
+                  </span>
+                </div>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-pink-200 text-pink-900">
+                  Daily
                 </span>
-                <span className="text-[10px] text-gray-500 font-mono">
-                  {studentProfile.rollNo} • Sem {studentProfile.semester}
-                </span>
-              </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {studentProfile.overallAttendance}%
-              </span>
-            </div>
+              </button>
+
+              {/* Student Card */}
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => setProfileModalOpen(true)}
+                  className="w-full p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200/80 flex items-center justify-between text-xs transition-colors text-left"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-bold text-gray-900 truncate max-w-[130px]">
+                      {user?.displayName || studentProfile.name}
+                    </span>
+                    <span className="text-[10px] text-gray-500 font-mono">
+                      {studentProfile.rollNo} • Sem {studentProfile.semester}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {studentProfile.overallAttendance}%
+                  </span>
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={onClose}
+                  className="flex items-center justify-center gap-2 w-full py-2 bg-black hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+                >
+                  <IoLogInOutline size={16} />
+                  <span>Sign In with Google</span>
+                </Link>
+              )}
+            </>
           )}
 
           {/* Desktop Sidebar Collapse Button */}

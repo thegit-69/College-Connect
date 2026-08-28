@@ -1,67 +1,42 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { IoSparkles, IoSendOutline, IoTrashOutline } from 'react-icons/io5'
+import {
+  IoSparkles,
+  IoSendOutline,
+  IoTrashOutline,
+  IoHeartOutline,
+  IoHappyOutline,
+  IoSchoolOutline,
+  IoTimeOutline,
+} from 'react-icons/io5'
 import useCampusStore from '../store/campusStore'
 import useAuthStore from '../store/authStore'
+import { askGroqChatbot } from '../services/groqAiService'
+import toast from 'react-hot-toast'
 
 const QUICK_PROMPTS = [
-  'What is my overall attendance?',
-  'Which subjects have shortage?',
-  'When is my next assignment due?',
-  'What is my current CGPA?',
-  'Show today\'s timetable',
+  { label: '📊 Check Attendance Shortage', text: 'Which of my subjects currently have an attendance shortage below 75%?' },
+  { label: '🧘 Exam Stress Relief', text: 'I am feeling overwhelmed with upcoming exams. Can you give me a 5-minute grounding strategy?' },
+  { label: '📅 Today\'s Class Timetable', text: 'What is my class timetable and lecture schedule for today?' },
+  { label: '📝 Pending Assignments', text: 'What assignments are due soon and what should I prioritize?' },
+  { label: '👩‍🏫 Mentor Cabin Details', text: 'Who is my faculty mentor and how can I contact them?' },
+  { label: '💡 Study Motivation', text: 'Give me a quick productivity boost and advice on how to study effectively today.' },
 ]
 
-function buildResponse(message, studentProfile, subjects, assignments, timetable) {
-  const lower = message.toLowerCase()
-
-  if (lower.includes('attendance') || lower.includes('shortage')) {
-    const short = subjects.filter(
-      (s) => s.total > 0 && (s.attended / s.total) * 100 < 75
-    )
-    return short.length > 0
-      ? `Your overall attendance is **${studentProfile.overallAttendance}%**.\n\nSubjects with shortage (< 75%):\n${short
-          .map((s) => `• **${s.code}** — ${((s.attended / s.total) * 100).toFixed(1)}% (${s.attended}/${s.total})`)
-          .join('\n')}`
-      : `Great news! Your overall attendance is **${studentProfile.overallAttendance}%** — all subjects are above 75%! 🎉`
-  }
-
-  if (lower.includes('cgpa') || lower.includes('gpa') || lower.includes('grade')) {
-    return `Your current **CGPA** is **${studentProfile.cgpa}** and last semester **SGPA** was **${studentProfile.currentSgpa}**. Keep it up! 📈`
-  }
-
-  if (lower.includes('assignment') || lower.includes('due')) {
-    const pending = assignments.filter((a) => a.status === 'Pending')
-    return pending.length > 0
-      ? `You have **${pending.length} pending assignments**:\n${pending
-          .map((a) => `• **${a.title}** — Due: ${a.dueDate}`)
-          .join('\n')}`
-      : `You have no pending assignments right now. All submissions are up to date! ✅`
-  }
-
-  if (lower.includes('timetable') || lower.includes('today') || lower.includes('schedule')) {
-    const day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()]
-    const classes = timetable[day] || []
-    return classes.length > 0
-      ? `**${day}'s Schedule:**\n${classes
-          .map((c) => `• ${c.time} — **${c.subject}** (${c.room})`)
-          .join('\n')}`
-      : `No classes scheduled for today (${day}).`
-  }
-
-  if (lower.includes('mentor') || lower.includes('hod') || lower.includes('professor')) {
-    return `Your academic mentor is **${studentProfile.mentor.name}** (${studentProfile.mentor.designation}).\nCabin: **${studentProfile.mentor.cabin}**\nEmail: ${studentProfile.mentor.email}`
-  }
-
-  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-    return `Hello, ${studentProfile.name.split(' ')[0]}! 👋 I'm your Campus AI Assistant. You can ask me about your attendance, CGPA, assignments, schedule, or anything campus-related.`
-  }
-
-  return `I'm here to help with campus queries! You can ask about:\n• **Attendance** — current percentage & shortages\n• **Academics** — CGPA, SGPA, subjects\n• **Assignments** — pending, due dates\n• **Timetable** — today's or weekly schedule\n• **Mentor** — contact info & cabin\n\nTry asking: *"What is my attendance?"*`
-}
-
 export default function AIAssistantPage() {
-  const { studentProfile, subjects, assignments, timetable, aiChatMessages, addAiMessage, clearAiChat } = useCampusStore()
+  const { user } = useAuthStore()
+  const {
+    studentProfile,
+    subjects,
+    assignments,
+    timetable,
+    moodLogs,
+    aiChatMessages,
+    addAiMessage,
+    clearAiChat,
+    setMoodModalOpen,
+  } = useCampusStore()
+
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const bottomRef = useRef(null)
@@ -70,69 +45,142 @@ export default function AIAssistantPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [aiChatMessages, isTyping])
 
-  const sendMessage = (text) => {
-    const msg = text || input.trim()
-    if (!msg) return
+  const latestMood = moodLogs && moodLogs.length > 0 ? moodLogs[0] : null
+
+  const handleSend = async (textToSend) => {
+    const queryText = (textToSend || input).trim()
+    if (!queryText || isTyping) return
+
     setInput('')
 
-    const userMsg = {
+    const userMessage = {
       id: `u-${Date.now()}`,
       sender: 'user',
-      text: msg,
+      text: queryText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
-    addAiMessage(userMsg)
+
+    const updatedHistory = [...aiChatMessages, userMessage]
+    addAiMessage(userMessage)
     setIsTyping(true)
 
-    setTimeout(() => {
-      const aiReply = buildResponse(msg, studentProfile, subjects, assignments, timetable)
+    try {
+      // Call Groq API with live campus student context
+      const aiResponse = await askGroqChatbot({
+        messages: updatedHistory,
+        studentProfile,
+        subjects,
+        assignments,
+        timetable,
+        moodHistory: moodLogs,
+      })
+
       addAiMessage({
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: aiReply,
+        text: aiResponse,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       })
+    } catch (error) {
+      console.error('Groq AI error:', error)
+      toast.error('AI response error: ' + error.message)
+      addAiMessage({
+        id: `ai-err-${Date.now()}`,
+        sender: 'ai',
+        text: `⚠️ I encountered a temporary connection issue while querying Groq. Please try again in a moment. (Error: ${error.message})`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      })
+    } finally {
       setIsTyping(false)
-    }, 900 + Math.random() * 600)
+    }
   }
 
-  const renderText = (text) => {
-    // Simple bold markdown renderer
-    return text.split('\n').map((line, i) => (
-      <p key={i} className={i > 0 ? 'mt-1' : ''}>
-        {line.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
-          part.startsWith('**') && part.endsWith('**') ? (
-            <strong key={j}>{part.slice(2, -2)}</strong>
-          ) : (
-            part
-          )
-        )}
-      </p>
-    ))
+  const renderFormattedMarkdown = (content) => {
+    return content.split('\n').map((line, idx) => {
+      // Handle list items
+      if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
+        const itemText = line.substring(2)
+        return (
+          <li key={idx} className="ml-4 list-disc text-[13px] my-0.5">
+            {formatBold(itemText)}
+          </li>
+        )
+      }
+      return (
+        <p key={idx} className={idx > 0 ? 'mt-1.5 text-[13px]' : 'text-[13px]'}>
+          {formatBold(line)}
+        </p>
+      )
+    })
+  }
+
+  const formatBold = (str) => {
+    return str.split(/(\*\*[^*]+\*\*)/).map((part, index) =>
+      part.startsWith('**') && part.endsWith('**') ? (
+        <strong key={index} className="font-bold text-gray-950 dark:text-white">
+          {part.slice(2, -2)}
+        </strong>
+      ) : (
+        part
+      )
+    )
   }
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-120px)]">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <IoSparkles className="text-amber-400" />
-            AI Campus Advisor
-          </h1>
-          <p className="text-gray-500 text-sm mt-0.5">Ask anything about your academics or campus</p>
+    <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-100px)] space-y-3 font-sans">
+      {/* Header with Groq LLaMA 3.3 Badge & Mood Pill */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-indigo-600 text-white flex items-center justify-center shadow-xs">
+            <IoSparkles size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-bold text-gray-950 font-display">
+                Campus AI & Wellbeing Advisor
+              </h1>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 bg-orange-100 text-orange-800 border border-orange-200 rounded-md">
+                Groq AI High-Speed
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              Live intelligence with your timetable, attendance, & mental wellness support.
+            </p>
+          </div>
         </div>
-        <button
-          onClick={clearAiChat}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <IoTrashOutline size={13} />
-          Clear
-        </button>
+
+        {/* Mood Check-In Quick Pill */}
+        <div className="flex items-center gap-2">
+          {latestMood ? (
+            <button
+              onClick={() => setMoodModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full text-xs font-semibold transition-colors"
+            >
+              <span>{latestMood.emoji}</span>
+              <span>Mood: {latestMood.label}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setMoodModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-full text-xs font-semibold transition-colors"
+            >
+              <IoHeartOutline />
+              <span>Log Today's Mood</span>
+            </button>
+          )}
+
+          <button
+            onClick={clearAiChat}
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Clear Chat History"
+          >
+            <IoTrashOutline size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-3 mb-3">
+      {/* Chat Messages Container */}
+      <div className="flex-1 overflow-y-auto bg-gray-50/80 rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-4 shadow-inner">
         {aiChatMessages.map((msg) => (
           <motion.div
             key={msg.id}
@@ -141,20 +189,33 @@ export default function AIAssistantPage() {
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+              className={`max-w-[85%] sm:max-w-[80%] px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${
                 msg.sender === 'user'
-                  ? 'bg-black text-white rounded-br-sm'
-                  : 'bg-white text-gray-800 border border-gray-200 shadow-xs rounded-bl-sm'
+                  ? 'bg-gray-950 text-white rounded-br-xs'
+                  : 'bg-white text-gray-800 border border-gray-200/90 rounded-bl-xs'
               }`}
             >
               {msg.sender === 'ai' && (
-                <div className="flex items-center gap-1 mb-1">
-                  <IoSparkles size={11} className="text-amber-400" />
-                  <span className="text-[10px] text-gray-400 font-semibold">Campus AI</span>
+                <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-gray-100">
+                  <div className="flex items-center gap-1 text-amber-600 font-bold text-[10px]">
+                    <IoSparkles size={11} />
+                    <span>Campus Advisor</span>
+                  </div>
+                  <span className="text-[9px] text-gray-400 font-mono">Realtime Groq</span>
                 </div>
               )}
-              <div className="text-[13px]">{renderText(msg.text)}</div>
-              <p className="text-[10px] mt-1 opacity-50 text-right">{msg.time}</p>
+
+              <div className="text-gray-800 leading-relaxed">
+                {renderFormattedMarkdown(msg.text)}
+              </div>
+
+              <p
+                className={`text-[9px] mt-1.5 text-right ${
+                  msg.sender === 'user' ? 'text-gray-400' : 'text-gray-400'
+                }`}
+              >
+                {msg.time}
+              </p>
             </div>
           </motion.div>
         ))}
@@ -163,15 +224,14 @@ export default function AIAssistantPage() {
         <AnimatePresence>
           {isTyping && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               className="flex justify-start"
             >
-              <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-400 flex items-center gap-1">
-                <span className="animate-bounce">●</span>
-                <span className="animate-bounce delay-100">●</span>
-                <span className="animate-bounce delay-200">●</span>
+              <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-xs text-gray-500 flex items-center gap-2 shadow-xs">
+                <IoSparkles className="text-amber-500 animate-spin" />
+                <span>Groq AI is analyzing your campus context...</span>
               </div>
             </motion.div>
           )}
@@ -180,32 +240,32 @@ export default function AIAssistantPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Quick Prompts */}
-      <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-        {QUICK_PROMPTS.map((p) => (
+      {/* Quick Prompts Carousel */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {QUICK_PROMPTS.map((qp, idx) => (
           <button
-            key={p}
-            onClick={() => sendMessage(p)}
-            className="flex-shrink-0 text-[11px] px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-full hover:border-gray-400 hover:text-gray-900 transition-colors"
+            key={idx}
+            onClick={() => handleSend(qp.text)}
+            className="flex-shrink-0 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:border-gray-900 hover:text-black rounded-full transition-all shadow-2xs font-medium whitespace-nowrap"
           >
-            {p}
+            {qp.label}
           </button>
         ))}
       </div>
 
-      {/* Input */}
-      <div className="flex gap-2">
+      {/* Input Box */}
+      <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-gray-200 shadow-xs focus-within:ring-2 focus-within:ring-black">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Ask about attendance, schedule, assignments…"
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black placeholder-gray-400"
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="Ask Groq about your attendance, exam stress, timetable, or mentor..."
+          className="flex-1 px-3 py-2 text-xs sm:text-sm text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-400"
         />
         <button
-          onClick={() => sendMessage()}
-          disabled={!input.trim()}
-          className="px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          onClick={() => handleSend()}
+          disabled={!input.trim() || isTyping}
+          className="p-2.5 bg-black hover:bg-gray-800 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
         >
           <IoSendOutline size={16} />
         </button>

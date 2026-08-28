@@ -11,6 +11,8 @@ import {
   IoMegaphoneOutline,
   IoArrowForward,
   IoSparklesOutline,
+  IoHeartOutline,
+  IoSparkles,
 } from 'react-icons/io5'
 import StatsCard from '../components/ui/StatsCard'
 import useAuthStore from '../store/authStore'
@@ -24,12 +26,13 @@ const QUICK_LINKS = [
   { label: 'Academics', path: '/dashboard/academics', icon: <IoSchoolOutline />, color: 'bg-blue-50 text-blue-600' },
   { label: 'Attendance', path: '/dashboard/attendance', icon: <IoCheckboxOutline />, color: 'bg-emerald-50 text-emerald-600' },
   { label: 'AI Advisor', path: '/dashboard/ai-assistant', icon: <IoSparklesOutline />, color: 'bg-amber-50 text-amber-600' },
+  { label: 'Wellness Sanctuary', path: '/dashboard/wellness', icon: <IoHeartOutline />, color: 'bg-pink-50 text-pink-600' },
   { label: 'Complaints', path: '/dashboard/complaints', icon: <IoMegaphoneOutline />, color: 'bg-purple-50 text-purple-600' },
 ]
 
 export default function Dashboard() {
   const { user } = useAuthStore()
-  const { studentProfile, subjects, announcements } = useCampusStore()
+  const { studentProfile, subjects, announcements, moodLogs, setMoodModalOpen } = useCampusStore()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -78,6 +81,7 @@ export default function Dashboard() {
   }
 
   const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()]
+  const latestMood = moodLogs && moodLogs.length > 0 ? moodLogs[0] : null
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -88,7 +92,7 @@ export default function Dashboard() {
         className="flex items-start justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 font-display">
             Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
             {user?.displayName?.split(' ')[0] || studentProfile.name.split(' ')[0]}! 👋
           </h1>
@@ -115,14 +119,55 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
+      {/* Daily Mood & Wellbeing Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-teal-900 via-emerald-900 to-gray-950 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-teal-800/40"
+      >
+        <div className="flex items-start gap-3.5">
+          <div className="text-3xl p-2.5 bg-white/10 rounded-2xl border border-white/15 backdrop-blur-md">
+            {latestMood ? latestMood.emoji : '🧘'}
+          </div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-teal-200">
+                {latestMood ? `Today's Mood: ${latestMood.label} (${latestMood.level}/5)` : 'Daily Mood Check-In'}
+              </span>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-teal-800 text-teal-200 uppercase">
+                Groq AI
+              </span>
+            </div>
+            <p className="text-xs text-teal-100 max-w-xl line-clamp-2">
+              {latestMood?.aiAdvice || 'Checking in with your emotions helps personalize your AI advisor and de-stress before classes.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setMoodModalOpen(true)}
+            className="flex-1 sm:flex-none px-3.5 py-2 bg-white text-teal-950 hover:bg-teal-50 font-bold text-xs rounded-xl shadow-xs transition-all whitespace-nowrap"
+          >
+            {latestMood ? 'Update Mood' : 'Log Mood'}
+          </button>
+          <Link
+            to="/dashboard/wellness"
+            className="flex-1 sm:flex-none px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white font-semibold text-xs rounded-xl border border-white/20 transition-all text-center whitespace-nowrap"
+          >
+            Wellness Hub →
+          </Link>
+        </div>
+      </motion.div>
+
       {/* Quick Links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {QUICK_LINKS.map((ql, i) => (
           <motion.div
             key={ql.label}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
+            transition={{ delay: i * 0.05 }}
           >
             <Link
               to={ql.path}

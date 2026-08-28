@@ -14,7 +14,7 @@ import toast from 'react-hot-toast'
 
 export default function ProfileModal({ isOpen, onClose }) {
   const { user, isAuthenticated, isSuperAdmin, setUser, logout } = useAuthStore()
-  const { studentProfile, riskEvaluation } = useCampusStore()
+  const { studentProfile } = useCampusStore()
 
   if (!isOpen) return null
 
@@ -137,7 +137,7 @@ export default function ProfileModal({ isOpen, onClose }) {
               <div className="p-2.5 bg-gray-50/80 rounded-xl text-center border border-gray-200/80">
                 <span className="text-[10px] text-gray-400 font-medium block uppercase tracking-wider">Risk Level</span>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block mt-0.5">
-                  {riskEvaluation.tier}
+                  {studentProfile?.riskLevel || 'LOW'}
                 </span>
               </div>
             </div>
