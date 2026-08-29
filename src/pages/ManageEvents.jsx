@@ -6,6 +6,7 @@ import {
   IoTrashOutline,
   IoCreateOutline,
   IoQrCodeOutline,
+  IoAddOutline,
 } from 'react-icons/io5'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -93,35 +94,39 @@ export default function ManageEvents() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-6xl mx-auto space-y-6 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-dark-900">My Events</h1>
-          <p className="text-dark-500 mt-1">Manage all your created events</p>
+          <h1 className="text-2xl font-bold text-gray-950 font-display">My Campus Events</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Manage event approvals, registrations, and live QR attendance check-ins</p>
         </div>
-        <Button onClick={() => navigate('/dashboard/create')}>
-          + Create Event
-        </Button>
+        <button
+          onClick={() => navigate('/dashboard/create')}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-black hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+        >
+          <IoAddOutline size={16} />
+          <span>Create Event</span>
+        </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-dark-200">
-          <p className="text-dark-400 text-lg">Loading your events...</p>
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
+          <p className="text-gray-400 text-sm">Loading your events...</p>
         </div>
       ) : (
         <div className="space-y-4">
           {events.map((event, index) => (
             <motion.div
               key={event.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white border border-dark-200 rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4"
+              className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center gap-4 shadow-xs"
             >
               {/* Thumbnail */}
-              <div className="w-full md:w-32 h-20 rounded-lg overflow-hidden flex-shrink-0">
+              <div className="w-full md:w-36 h-28 md:h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                 <img
-                  src={event.banner}
+                  src={event.banner || event.image || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80'}
                   alt={event.title}
                   className="w-full h-full object-cover"
                 />
@@ -129,18 +134,18 @@ export default function ManageEvents() {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-dark-900 text-sm">{event.title}</h3>
-                <p className="text-xs text-dark-400 mt-0.5">
-                  {event.type} • {formatDate(event.startDate)}
+                <h3 className="font-bold text-gray-950 text-sm sm:text-base font-display">{event.title}</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {event.type} • {formatDate(event.startDate || event.date)}
                 </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge>{event.status}</Badge>
-                  <Badge>{event.mode}</Badge>
+                <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                  <Badge>{event.status || 'Active'}</Badge>
+                  <Badge>{event.mode || 'Offline'}</Badge>
                   <Badge color={getApprovalColor(event.approvalStatus)}>
                     {getApprovalLabel(event.approvalStatus)}
                   </Badge>
-                  <span className="text-xs text-dark-400">
-                    {event.registeredCount} registered
+                  <span className="text-xs text-gray-500 font-medium ml-1">
+                    {event.registeredCount || 0} registered
                   </span>
                 </div>
                 {event.approvalStatus === APPROVAL_STATUS.REJECTED && (
@@ -151,51 +156,52 @@ export default function ManageEvents() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<IoQrCodeOutline />}
-                  disabled={event.approvalStatus !== APPROVAL_STATUS.APPROVED}
+              <div className="flex flex-wrap items-center justify-end md:justify-start gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100">
+                {/* Live QR Attendance Tracker Button */}
+                <button
                   onClick={() => navigate(`/dashboard/events/${event.id}/attendance`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors"
+                  title="Live QR Attendance Portal"
                 >
-                  QR
-                </Button>
+                  <IoQrCodeOutline size={15} />
+                  <span>QR Attendance</span>
+                </button>
+
                 {event.approvalStatus === APPROVAL_STATUS.REJECTED && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    icon={<IoRefreshOutline />}
+                  <button
                     onClick={() => handleResubmit(event.id)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition-colors"
                   >
-                    Resubmit
-                  </Button>
+                    <IoRefreshOutline />
+                    <span>Resubmit</span>
+                  </button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={<IoCreateOutline />}
+                <button
                   onClick={() => navigate(`/events/${event.id}`)}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-semibold transition-colors"
                 >
                   View
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={<IoTrashOutline />}
-                  className="text-red-500 hover:bg-red-50"
+                </button>
+                <button
                   onClick={() => handleDelete(event.id, event.title)}
-                />
+                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  title="Delete Event"
+                >
+                  <IoTrashOutline size={16} />
+                </button>
               </div>
             </motion.div>
           ))}
 
           {events.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-2xl border border-dark-200">
-              <p className="text-dark-400 text-lg mb-4">No events yet</p>
-              <Button onClick={() => navigate('/dashboard/create')}>
+            <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 space-y-3">
+              <p className="text-gray-400 text-sm">You haven't created any event proposals yet.</p>
+              <button
+                onClick={() => navigate('/dashboard/create')}
+                className="px-5 py-2.5 bg-black hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+              >
                 Create your first event
-              </Button>
+              </button>
             </div>
           )}
         </div>

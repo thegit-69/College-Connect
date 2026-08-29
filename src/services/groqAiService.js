@@ -1,7 +1,3 @@
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const PRIMARY_MODEL = 'openai/gpt-oss-120b'
-const FALLBACK_MODELS = ['openai/gpt-oss-20b', 'qwen/qwen3.8-27b']
-
 export const MOOD_LEVELS = [
   { level: 1, label: 'Very Bad', emoji: '😫', color: 'from-rose-500 to-red-600', description: 'Overwhelmed, exhausted, or down' },
   { level: 2, label: 'Bad', emoji: '🙁', color: 'from-orange-500 to-amber-600', description: 'Stressed, anxious, or struggling' },
@@ -51,7 +47,7 @@ function buildSystemPrompt(studentProfile, subjects, assignments, timetable, moo
 }
 
 /**
- * Call Groq API with conversation history and live student context
+ * Call Vercel Serverless Function (/api/chat) with conversation history and live student context
  */
 export const askGroqChatbot = async ({
   messages,
@@ -61,11 +57,6 @@ export const askGroqChatbot = async ({
   timetable,
   moodHistory = [],
 }) => {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY
-  if (!apiKey || apiKey.trim() === '') {
-    throw new Error('Groq API Key is missing. Please set VITE_GROQ_API_KEY in your .env file.')
-  }
-
   const systemPrompt = buildSystemPrompt(studentProfile, subjects, assignments, timetable, moodHistory)
 
   const formattedMessages = [
@@ -76,49 +67,29 @@ export const askGroqChatbot = async ({
     })),
   ]
 
-  const modelsToTry = [PRIMARY_MODEL, ...FALLBACK_MODELS]
-  let lastError = null
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messages: formattedMessages,
+    }),
+  })
 
-  for (const model of modelsToTry) {
-    try {
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: formattedMessages,
-          temperature: 0.7,
-          max_tokens: 850,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        return data.choices?.[0]?.message?.content || 'I am here to support you with your campus queries.'
-      } else {
-        const errJson = await response.json().catch(() => ({}))
-        lastError = new Error(errJson.error?.message || `Groq error on model ${model} (${response.status})`)
-        console.warn(`Model ${model} failed, trying next fallback...`, errJson)
-      }
-    } catch (err) {
-      lastError = err
-      console.warn(`Model ${model} network error, trying next fallback...`, err)
-    }
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.error || `Server responded with status ${response.status}`)
   }
 
-  throw lastError || new Error('All Groq models failed to respond.')
+  const data = await response.json()
+  return data.reply || data.content || 'I am here to support you with your campus queries.'
 }
 
 /**
- * Get an instant personalized AI wellness affirmation & coping advice based on mood
+ * Get an instant personalized AI wellness affirmation & coping advice based on mood via /api/chat
  */
 export const getGroqMoodReflection = async (moodLevel, tags = [], note = '') => {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY
-  if (!apiKey) return null
-
   const mood = MOOD_LEVELS.find((m) => m.level === moodLevel) || MOOD_LEVELS[2]
 
   const prompt = `A college student just logged their daily mood as: ${mood.emoji} ${mood.label} (Level ${mood.level} of 5).
@@ -127,31 +98,23 @@ Student note: "${note || 'None'}".
 
 Provide a warm, uplifting, 2-3 sentence personalized encouragement and one gentle mindfulness/academic micro-tip for their day. Keep it supportive and genuine.`
 
-  const modelsToTry = [PRIMARY_MODEL, ...FALLBACK_MODELS]
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+      }),
+    })
 
-  for (const model of modelsToTry) {
-    try {
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.8,
-          max_tokens: 200,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        return data.choices?.[0]?.message?.content
-      }
-    } catch (e) {
-      console.warn(`Mood reflection error on model ${model}:`, e)
+    if (response.ok) {
+      const data = await response.json()
+      return data.reply || data.content || null
     }
+  } catch (e) {
+    console.warn('Mood reflection fetch error:', e)
   }
 
   return null

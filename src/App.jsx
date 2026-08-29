@@ -19,6 +19,7 @@ import ManageEvents from './pages/ManageEvents'
 import CreateEvent from './pages/CreateEvent'
 import Notifications from './pages/Notifications'
 import AdminReview from './pages/AdminReview'
+import EventAttendance from './pages/Attendance'
 
 // Campus Connect feature pages
 import AcademicsPage from './pages/AcademicsPage'
@@ -114,7 +115,7 @@ function App() {
             {/* Events Hub (clg_events integration) */}
             <Route path="events" element={<ManageEvents />} />
             <Route path="create" element={<CreateEvent />} />
-            <Route path="events/:id/attendance" element={<AttendancePage />} />
+            <Route path="events/:id/attendance" element={<EventAttendance />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="admin/review" element={<AdminReview />} />
 

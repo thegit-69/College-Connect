@@ -69,7 +69,7 @@ export default function Home() {
   ]
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden flex flex-col justify-between bg-gray-950 font-sans select-none">
+    <div className="relative min-h-screen md:h-screen w-full overflow-x-hidden overflow-y-auto md:overflow-hidden flex flex-col justify-between bg-gray-950 font-sans select-none">
       {/* 1. Fullscreen Breathtaking Mountain Meadow Backdrop */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-100 filter brightness-[0.88] contrast-[1.04]"
@@ -80,7 +80,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-gradient-to-b from-gray-950/70 via-black/35 to-gray-950/85 backdrop-blur-[0.5px]" />
 
       {/* 2. Minimal Floating Header */}
-      <header className="relative z-20 w-full max-w-7xl mx-auto px-6 sm:px-10 py-6 flex items-center justify-between">
+      <header className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-10 py-4 sm:py-6 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-white/90 text-gray-950 flex items-center justify-center shadow-lg backdrop-blur-md">
@@ -212,9 +212,9 @@ export default function Home() {
       </main>
 
       {/* 4. Minimal Footer Strip */}
-      <footer className="relative z-20 w-full max-w-7xl mx-auto px-6 sm:px-10 py-5 flex items-center justify-between text-[11px] text-gray-300">
+      <footer className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-10 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-gray-300 text-center sm:text-left">
         <p>© 2026 Campus Connect • Intelligent Digital Platform</p>
-        <p className="flex items-center gap-1.5">
+        <p className="flex items-center gap-1.5 justify-center">
           <IoShieldCheckmarkOutline className="text-emerald-400" />
           <span>Real-time Cloud Firestore & Firebase Auth</span>
         </p>
